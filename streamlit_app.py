@@ -9,5 +9,6 @@ st.set_page_config(
     page_title = "IST 488 HW Manager", 
     layout = "wide", 
     initial_sidebar_state = "expanded", 
-    page_icon=":material/edit:" ) 
+    page_icon=":material/edit:" 
+) 
 pg.run()
