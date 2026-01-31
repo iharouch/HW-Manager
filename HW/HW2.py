@@ -41,12 +41,20 @@ else:
         'gpt-5.2'
     ], index=0) # Selectbox for model choice if not automatically using advanced model as default
 
+#Allow the user to choose the language of the output
+output_language = st.sidebar.selectbox("Choose output language:", [
+    'English',
+    'French',
+    'Spanish',
+    'German'
+], disabled = not url) # Disabled until a URL is provided
+
 # Provide user with three options for generating a summary
 summary_option = st.sidebar.radio("Choose a summary type:", [
     'Summarize the document in 100 words',
     'Summarize the document in 2 connecting paragraphs',
     'Summarize the document in 5 bullet points'
-], disabled=not url) # Disabled until a document is available
+], disabled=not url) # Disabled until a URL is available
 
 if st.sidebar.button("Generate Summary", disabled=not url):
     if url:
@@ -55,9 +63,9 @@ if st.sidebar.button("Generate Summary", disabled=not url):
             messages = [
                 {
                     "role": "user",
-                    "content": f"Here's a document: {url_content} \n\n---\n\n {summary_option}",
+                    "content": f"Here's a document: {url_content} \n\n---\n\n {summary_option} in {output_language}",
                 }
-            ] # API call takes summary option into account
+            ] # API call takes summary option and output language into account
             
             # Generate an answer using the OpenAI API.
             stream = client.chat.completions.create(
