@@ -28,8 +28,6 @@ def read_url_content(url):
 
 # Read content from URL
 url = st.text_input("Enter a URL: ")
-url_content = read_url_content(url)
-
 # Provide user with options for model selection
 use_advanced_model = st.sidebar.checkbox("Use advanced model (gpt-5.2)", value=False) # Checkbox that uses most advanced model if checked
 
@@ -51,20 +49,24 @@ summary_option = st.sidebar.radio("Choose a summary type:", [
 ], disabled=not url) # Disabled until a document is available
 
 if st.sidebar.button("Generate Summary", disabled=not url):
-    if url_content:
-        messages = [
-            {
-                "role": "user",
-                "content": f"Here's a document: {url_content} \n\n---\n\n {summary_option}",
-            }
-        ] # API call takes summary option into account
-
-        # Generate an answer using the OpenAI API.
-        stream = client.chat.completions.create(
-            model=model_option, # Use selected model
-            messages=messages,
-            stream=True,
-        )
-
-        # Stream the response to the app using `st.write_stream`.
-        st.write_stream(stream)
+    if url:
+        url_content = read_url_content(url)
+        if url_content:
+            messages = [
+                {
+                    "role": "user",
+                    "content": f"Here's a document: {url_content} \n\n---\n\n {summary_option}",
+                }
+            ] # API call takes summary option into account
+            
+            # Generate an answer using the OpenAI API.
+            stream = client.chat.completions.create(
+                model=model_option, # Use selected model
+                messages=messages,
+                stream=True,
+            )
+            
+            # Stream the response to the app using `st.write_stream`.
+            st.write_stream(stream)
+        else:
+            st.error(f"Could not read the URL. Please check that it's valid.")
