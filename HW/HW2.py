@@ -5,9 +5,7 @@ from bs4 import BeautifulSoup
 
 # Show title and description.
 st.title("HW 2 - MY Document question answering")
-st.write(
-    "Provide a URL and ask a question about it – GPT will answer!"
-)
+st.write("Provide a URL and ask a question about it – GPT will answer!")
 
 # Store the API key in `./.streamlit/secrets.toml` and access it
 # via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
