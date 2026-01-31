@@ -48,9 +48,9 @@ summary_option = st.sidebar.radio("Choose a summary type:", [
     'Summarize the document in 100 words',
     'Summarize the document in 2 connecting paragraphs',
     'Summarize the document in 5 bullet points'
-], disabled=not url_content) # Disabled until a document is available
+], disabled=not url) # Disabled until a document is available
 
-if st.sidebar.button("Generate Summary", disabled=not url_content):
+if st.sidebar.button("Generate Summary", disabled=not url):
     if url_content:
         messages = [
             {
