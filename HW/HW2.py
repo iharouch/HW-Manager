@@ -103,11 +103,18 @@ if st.sidebar.button("Generate Summary", disabled=not url):
             ] # API call takes summary option and output language into account
             
             # Generate an answer using the OpenAI API.
-            stream = client.chat.completions.create(
-                model=model_option, # Use selected model
-                messages=messages,
-                stream=True,
-            )
+            if selected_llm == 'OpenAI':
+                stream = client.chat.completions.create(
+                    model=model_option, # Use selected model
+                    messages=messages,
+                    stream=True,
+                )
+            else: # Claude selected
+                stream = claude_client.messages.create(
+                    model=model_option, # Use selected model
+                    max_tokens=1024,
+                    messages=messages,
+                )
             
             # Stream the response to the app using `st.write_stream`.
             st.write_stream(stream)
