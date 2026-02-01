@@ -15,6 +15,10 @@ openai_api_key = st.secrets['OPENAI_API_KEY']
 client = OpenAI(api_key=openai_api_key)
 client.models.list() # Validates the key by asking for the models that the key is compatible with
 
+# Create a Claude client
+claude_client = st.secrets['CLAUDE_API_KEY']
+claude_client.models.list() # Validates the key by asking for the models that the key is compatible with
+
 # Let the user provide a URL.
 def read_url_content(url):
     try:
@@ -28,18 +32,22 @@ def read_url_content(url):
 
 # Read content from URL
 url = st.text_input("Enter a URL: ")
-# Provide user with options for model selection
-use_advanced_model = st.sidebar.checkbox("Use advanced model (gpt-5.2)", value=False) # Checkbox that uses most advanced model if checked
 
-if use_advanced_model:
-    model_option = 'gpt-5.2'
-else:
-    model_option = st.sidebar.selectbox("Choose a model:", [
-        'gpt-5-mini',
-        'gpt-5-nano',
-        'gpt-4.1',
-        'gpt-5.2'
-    ], index=0) # Selectbox for model choice if not automatically using advanced model as default
+# Define model options for each LLM (OpenAI and Claude)
+llm_models = {
+    'OpenAI': ['gpt-5-mini', 'gpt-5-nano', 'gpt-4.1', 'gpt-5.2'],
+    'Claude': ['claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001', 'claude-opus-4-5-20251101']
+}
+
+# Radio button to select LLM
+selected_llm = st.sidebar.radio("Choose an LLM:", list(llm_models.keys()))
+
+# Provide user with dropdown to select model based on LLM
+model_option = st.sidebar.selectbox("Choose a model:", llm_models[selected_llm])
+
+#Add a checkbox to allow user to select the most advanced model available
+if st.sidebar.checkbox("Use advanced model"):
+    model_option = llm_models[selected_llm][-1]  # Select the last model in the list as the most advanced
 
 #Allow the user to choose the language of the output
 output_language = st.sidebar.selectbox("Choose output language:", [
