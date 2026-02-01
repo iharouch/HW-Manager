@@ -3,3 +3,4 @@ openai
 PyMuPDF
 bs4
 requests
+anthropic

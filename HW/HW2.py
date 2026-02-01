@@ -2,6 +2,7 @@ import streamlit as st
 from openai import OpenAI
 import requests
 from bs4 import BeautifulSoup
+from anthropic import Anthropic, AuthenticationError
 
 # Show title and description.
 st.title("HW 2 - MY URL question answering")
@@ -16,8 +17,27 @@ client = OpenAI(api_key=openai_api_key)
 client.models.list() # Validates the key by asking for the models that the key is compatible with
 
 # Create a Claude client
-claude_client = st.secrets['CLAUDE_API_KEY']
-claude_client.models.list() # Validates the key by asking for the models that the key is compatible with
+claude_client = Anthropic(api_key=st.secrets['CLAUDE_API_KEY'])
+
+#Validates claude api key
+def validate_claude_key():
+    try:
+        claude_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1,
+            messages=[{"role": "user", "content": "ping"}],
+        )
+        return True
+    except AuthenticationError:
+        return False
+    except Exception:
+        return True
+
+if "claude_client" not in st.session_state:
+    st.session_state.claude_client = validate_claude_key()
+
+if not st.session_state.claude_client:
+    st.error("Invalid Claude API key")
 
 # Let the user provide a URL.
 def read_url_content(url):
