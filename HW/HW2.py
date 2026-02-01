@@ -109,14 +109,16 @@ if st.sidebar.button("Generate Summary", disabled=not url):
                     messages=messages,
                     stream=True,
                 )
+                # Stream the response to the app using `st.write_stream`.
+                st.write_stream(stream)
+
             else: # Claude selected
                 stream = claude_client.messages.create(
                     model=model_option, # Use selected model
                     max_tokens=1024,
                     messages=messages,
                 )
-            
-            # Stream the response to the app using `st.write_stream`.
-            st.write_stream(stream)
+                #Extract and display text response from Claude
+                st.write(stream.content[0].text)
         else:
             st.error(f"Could not read the URL. Please check that it's valid.")
