@@ -56,7 +56,7 @@ url = st.text_input("Enter a URL: ")
 # Define model options for each LLM (OpenAI and Claude)
 llm_models = {
     'OpenAI': ['gpt-5-mini', 'gpt-5-nano', 'gpt-4.1', 'gpt-5.2'],
-    'Claude': ['claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001', 'claude-opus-4-5-20251101']
+    'Claude': ['claude-haiku-4-5-20251001', 'claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101']
 }
 
 # Radio button to select LLM
