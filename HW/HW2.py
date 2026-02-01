@@ -74,7 +74,7 @@ model_option = st.sidebar.selectbox(
 
 # Override model if advanced is selected
 if use_advanced:
-    model_option = llm_models[selected_llm][-1]
+    model_option = llm_models[selected_llm][-1] #GPT 5.2 for OpenAI, Claude Opus for Claude
 
 #Allow the user to choose the language of the output
 output_language = st.sidebar.selectbox("Choose output language:", [
