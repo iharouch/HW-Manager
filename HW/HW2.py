@@ -63,13 +63,18 @@ llm_models = {
 selected_llm = st.sidebar.radio("Choose an LLM:", list(llm_models.keys()))
 
 #Add a checkbox to allow user to select the most advanced model available
-if st.sidebar.checkbox("Use advanced model"):
-    model_option = llm_models[selected_llm][-1]  # Select the last model in the list as the most advanced
+use_advanced = st.sidebar.checkbox("Use advanced model")
 
-# Provide user with dropdown to select model based on LLM
-model_option = st.sidebar.selectbox("Choose a model:",
-                                     llm_models[selected_llm],
-                                     disabled=use_advanced) # Disabled if advanced model is selected
+# Selectbox for model options (disabled when checkbox is checked)
+model_option = st.sidebar.selectbox(
+    "Choose a model:",
+    llm_models[selected_llm],
+    disabled=use_advanced
+)
+
+# Override model if advanced is selected
+if use_advanced:
+    model_option = llm_models[selected_llm][-1]
 
 #Allow the user to choose the language of the output
 output_language = st.sidebar.selectbox("Choose output language:", [
