@@ -4,3 +4,4 @@ PyMuPDF
 bs4
 requests
 anthropic
+urllib
