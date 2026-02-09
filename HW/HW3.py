@@ -1,5 +1,6 @@
 import streamlit as st
 from openai import OpenAI
+from anthropic import Anthropic, AuthenticationError
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
@@ -41,17 +42,29 @@ def read_url_content(url):
 #Show title and description
 st.title("MY Lab3 question answering chatbot")
 
-openAI_model = st.sidebar.selectbox("Select OpenAI model",
-                                    ("mini", "regular"))
-if openAI_model == "mini":
-    model = "gpt-4o-mini"
+llm = st.sidebar.selectbox("Select LLM", ("OpenAI", "Claude"))
+if llm == "OpenAI":
+    model = "gpt-5.2"
 else:
-    model = "gpt-4o"
+   model = "claude-opus-4-5-20251101"
 
-#Create an OpenAI client
-if 'client' not in st.session_state:
-    api_key = st.secrets["OPENAI_API_KEY"]
-    st.session_state.client = OpenAI(api_key=api_key)
+# Store clients in session state
+if 'clients' not in st.session_state:
+    st.session_state['clients'] = {}
+
+if llm == "OpenAI":
+    if "openai" not in st.session_state.clients:
+        api_key = st.secrets["OPENAI_API_KEY"]
+        st.session_state.clients["openai"] = OpenAI(api_key=api_key)
+
+    client = st.session_state.clients["openai"]
+
+elif llm == "Claude":
+    if "claude" not in st.session_state.clients:
+        api_key = st.secrets["CLAUDE_API_KEY"]
+        st.session_state.clients["claude"] = Anthropic(api_key=api_key)
+
+    client = st.session_state.clients["claude"]
 
 # Initialize messages with system prompt (protected from removal)
 if 'messages' not in st.session_state:
