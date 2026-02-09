@@ -116,7 +116,7 @@ if prompt := st.chat_input("What do you need help with?"):
     # Apply buffer while also using system prompt
     messages_to_send = keep_last_n_user_messages(st.session_state.messages, n=3)
 
-    # Read URL content inline (summary-style approach)
+    # Read URL content and add to system prompt for context
     url_text = ""
 
     if url1:
@@ -142,7 +142,7 @@ if prompt := st.chat_input("What do you need help with?"):
             }
         ] + [m for m in messages_to_send if m["role"] != "system"]
 
-    if llm == "OpenAI":
+    if llm == "OpenAI": #OpenAI
         client = st.session_state.clients["openai"]
         stream = client.chat.completions.create(
             model=model,
