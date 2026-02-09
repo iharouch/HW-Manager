@@ -13,7 +13,7 @@ SYSTEM_PROMPT = """You are a helpful Q&A chatbot. Follow these rules STRICTLY:
 5. If the user says "No" or "no", respond with: "How can I help you with something else?"
 Keep responses focused, helpful, and easy to understand."""
 
-def keep_last_n_user_messages(messages, n=6):
+def keep_last_n_user_messages(messages, n=3):
     """Keep only the last n user messages and their responses, while preserving system prompt"""
     # Find user message indices (skip system prompt at index 0)
     user_message_indices = [i for i, msg in enumerate(messages) if msg["role"] == "user"]
@@ -113,7 +113,7 @@ if prompt := st.chat_input("What do you need help with?"):
         st.markdown(prompt)
 
     # Apply buffer while also using system prompt
-    messages_to_send = keep_last_n_user_messages(st.session_state.messages, n=6)
+    messages_to_send = keep_last_n_user_messages(st.session_state.messages, n=3)
 
     # Read URL content inline (summary-style approach)
     url_text = ""
