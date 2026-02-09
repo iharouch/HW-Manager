@@ -45,6 +45,7 @@ st.title("MY Lab3 question answering chatbot")
 if 'clients' not in st.session_state:
     st.session_state.clients = {}
 
+# LLM options with premium model
 llm = st.sidebar.selectbox("Select LLM", ("OpenAI", "Claude"))
 if llm == "OpenAI":
     model = "gpt-5.2"
@@ -69,7 +70,7 @@ elif llm == "Claude":
 #Validates claude api key
 def validate_claude_key():
     try:
-        claude_client.messages.create(
+        client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1,
             messages=[{"role": "user", "content": "ping"}],
@@ -80,13 +81,13 @@ def validate_claude_key():
     except Exception:
         return True
 
-if "claude_client" not in st.session_state:
-    st.session_state.claude_client = validate_claude_key()
+if "client" not in st.session_state:
+    st.session_state.client = validate_claude_key()
 
-if not st.session_state.claude_client:
+if not st.session_state.client:
     st.error("Invalid Claude API key")
 
-# Initialize messages with system prompt (protected from removal)
+# Initialize messages with system prompt (so that it doesn't get removed)
 if 'messages' not in st.session_state:
     st.session_state['messages'] = [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -114,6 +115,32 @@ if prompt := st.chat_input("What do you need help with?"):
     # Apply buffer while also using system prompt
     messages_to_send = keep_last_n_user_messages(st.session_state.messages, n=2)
 
+    # Read URL content inline (summary-style approach)
+    url_text = ""
+
+    if url1:
+        content = read_url_content(url1)
+        if content:
+            url_text += "\n\n" + content # Add URL content to the message history for context
+
+    if add_second == "Yes" and url2:
+        content = read_url_content(url2)
+        if content:
+            url_text += "\n\n" + content # Add second URL content to the message history for context
+
+    if url_text:
+        messages_to_send = [
+            {
+                "role": "system",
+                "content": (
+                    SYSTEM_PROMPT
+                    + "Use the following web content to answer the user's question. "
+                    "If the answer is not in the content, say you don't know."
+                    + url_text
+                ),
+            }
+        ] + [m for m in messages_to_send if m["role"] != "system"]
+
     if llm == "OpenAI":
         client = st.session_state.clients["openai"]
         stream = client.chat.completions.create(
@@ -127,21 +154,15 @@ if prompt := st.chat_input("What do you need help with?"):
         st.session_state.messages.append({"role": "assistant", "content": response})
     
     else:  # Claude
+        system_text = "".join(m["content"] for m in messages_to_send if m["role"] == "system")
+        user_messages = [m for m in messages_to_send if m["role"] == "user"]
+
         client = st.session_state.clients["claude"]
-        # Anthropic uses a different message format; convert from OpenAI format
-        # Remove system message and pass it separately
-        user_messages = [msg for msg in messages_to_send if msg["role"] != "system"]
-        system_msg = next((msg["content"] for msg in messages_to_send if msg["role"] == "system"), "")
-        
-        with st.chat_message("assistant"):
-            response = ""
-            with client.messages.stream(
-                model=model,
-                max_tokens=1024,
-                system=system_msg,
-                messages=user_messages,
-            ) as stream:
-                for text in stream.text_stream:
-                    response += text
-                    st.write(text, end="")
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        stream = client.messages.create(
+            model=model, # Use selected model
+            max_tokens=1024,
+            messages=user_messages,
+            system=system_text,
+                )
+        #Extract and display text response from Claude
+        st.write(stream.content[0].text)
