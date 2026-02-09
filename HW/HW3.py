@@ -3,7 +3,6 @@ from openai import OpenAI
 from anthropic import Anthropic, AuthenticationError
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
 
 # System prompt to guide bot behavior
 SYSTEM_PROMPT = """You are a helpful Q&A chatbot. Follow these rules STRICTLY:
@@ -47,10 +46,6 @@ if llm == "OpenAI":
     model = "gpt-5.2"
 else:
    model = "claude-opus-4-5-20251101"
-
-# Store clients in session state
-if 'clients' not in st.session_state:
-    st.session_state['clients'] = {}
 
 if llm == "OpenAI":
     if "openai" not in st.session_state.clients:
