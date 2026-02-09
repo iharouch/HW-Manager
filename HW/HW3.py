@@ -40,6 +40,7 @@ def read_url_content(url):
 
 #Show title and description
 st.title("MY Lab3 question answering chatbot")
+st.write("Ask a question to the chatbot and optionally add URLs if you would like it to use them for context or reference. The chatbot will answer your question based on its own knowledge and the provided URLs. The chatbot has a 6-message memory buffer, so it will only remember your last 3 questions and its last 3 answers. Therefore, if you asked more than 3 questions and want to refer to something you asked before, please add it again in your current question to remind the chatbot.")
 
 # Client dictionary to store API clients for reuse in session state
 if 'clients' not in st.session_state:
