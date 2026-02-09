@@ -41,6 +41,10 @@ def read_url_content(url):
 #Show title and description
 st.title("MY Lab3 question answering chatbot")
 
+# Client dictionary to store API clients for reuse in session state
+if 'clients' not in st.session_state:
+    st.session_state.clients = {}
+
 llm = st.sidebar.selectbox("Select LLM", ("OpenAI", "Claude"))
 if llm == "OpenAI":
     model = "gpt-5.2"
@@ -53,6 +57,7 @@ if llm == "OpenAI":
         st.session_state.clients["openai"] = OpenAI(api_key=api_key)
 
     client = st.session_state.clients["openai"]
+    client.models.list() # Validates the key by asking for the models that the key is compatible with
 
 elif llm == "Claude":
     if "claude" not in st.session_state.clients:
@@ -60,6 +65,26 @@ elif llm == "Claude":
         st.session_state.clients["claude"] = Anthropic(api_key=api_key)
 
     client = st.session_state.clients["claude"]
+
+#Validates claude api key
+def validate_claude_key():
+    try:
+        claude_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1,
+            messages=[{"role": "user", "content": "ping"}],
+        )
+        return True
+    except AuthenticationError:
+        return False
+    except Exception:
+        return True
+
+if "claude_client" not in st.session_state:
+    st.session_state.claude_client = validate_claude_key()
+
+if not st.session_state.claude_client:
+    st.error("Invalid Claude API key")
 
 # Initialize messages with system prompt (protected from removal)
 if 'messages' not in st.session_state:
@@ -86,15 +111,37 @@ if prompt := st.chat_input("What do you need help with?"):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    client = st.session_state.client
     # Apply buffer while also using system prompt
     messages_to_send = keep_last_n_user_messages(st.session_state.messages, n=2)
-    stream = client.chat.completions.create(
-        model=model,
-        messages=messages_to_send,
-        stream=True
-    )
 
-    with st.chat_message("assistant"):
-        response = st.write_stream(stream)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    if llm == "OpenAI":
+        client = st.session_state.clients["openai"]
+        stream = client.chat.completions.create(
+            model=model,
+            messages=messages_to_send,
+            stream=True
+        )
+        
+        with st.chat_message("assistant"):
+            response = st.write_stream(stream)
+        st.session_state.messages.append({"role": "assistant", "content": response})
+    
+    else:  # Claude
+        client = st.session_state.clients["claude"]
+        # Anthropic uses a different message format; convert from OpenAI format
+        # Remove system message and pass it separately
+        user_messages = [msg for msg in messages_to_send if msg["role"] != "system"]
+        system_msg = next((msg["content"] for msg in messages_to_send if msg["role"] == "system"), "")
+        
+        with st.chat_message("assistant"):
+            response = ""
+            with client.messages.stream(
+                model=model,
+                max_tokens=1024,
+                system=system_msg,
+                messages=user_messages,
+            ) as stream:
+                for text in stream.text_stream:
+                    response += text
+                    st.write(text, end="")
+        st.session_state.messages.append({"role": "assistant", "content": response})
