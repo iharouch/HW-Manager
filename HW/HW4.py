@@ -25,7 +25,7 @@ if 'client' not in st.session_state:
     api_key = st.secrets["OPENAI_API_KEY"]
     st.session_state.client = OpenAI(api_key=api_key)
 
-### Extract text from HTML and populate collection ###
+### Extract text from HTML and add to collection ###
 def extract_text_from_html(file_path):
     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
         html = f.read()
