@@ -34,6 +34,9 @@ def extract_text_from_html(file_path):
         s.extract()
     return soup.get_text(" ", strip=True)
 
+#I used a fixed-size chunking method with some overlap because fixed-size is simple and easier to implement compared to 
+#semantic chunking. Even though semantic chunking is more useful, especially when chunking texts by topics/context, it was too
+# complicated to implement here. The overlap helps maintain some context between the chunks to keep the information more coherent when chunks are separated.
 def chunk_text(text, size=800, overlap=150):
     words = text.split()
     step = size - overlap
