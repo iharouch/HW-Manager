@@ -5,5 +5,5 @@ bs4
 requests
 anthropic
 chromadb
-sentence-transformers
-faiss-cpu
+pysqlite3-binary
+protobuf==3.20
