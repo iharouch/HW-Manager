@@ -11,7 +11,7 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 #Create ChromaDB client and collection
 if 'chroma_client' not in st.session_state:
-    st.session_state.chroma_client = chromadb.PersistentClient(path="./ChromaDB_for_Lab")
+    st.session_state.chroma_client = chromadb.PersistentClient(path="./ChromaDB_for_HW")
 if 'HW4_VectorDB' not in st.session_state:
     st.session_state.HW4_VectorDB = st.session_state.chroma_client.get_or_create_collection(name="HW4Collection")
 
@@ -87,6 +87,21 @@ SYSTEM_PROMPT = """You are a helpful Q&A chatbot. Follow these rules STRICTLY:
 5. If the user says "No" or "no", respond with: "How can I help you with something else?"
 Keep responses focused, helpful, and easy to understand."""
 
+def keep_last_n_user_messages(messages, n=5):
+    """Keep only the last n user messages and their responses, while preserving system prompt"""
+    # Find user message indices (skip system prompt at index 0)
+    user_message_indices = [i for i, msg in enumerate(messages) if msg["role"] == "user" and i > 0]
+    
+    if len(user_message_indices) <= n:
+        # Keep system prompt + all user messages and responses
+        return messages
+    
+    # Find the index of the (n)th most recent user message
+    start_index = user_message_indices[-n]
+    
+    # Return system prompt (index 0) plus messages from that point onward
+    return [messages[0]] + messages[start_index:]
+
 ### Main App ###
 st.title("HW 4: Chatbot using RAG")
 
@@ -135,3 +150,4 @@ if prompt := st.chat_input("What do you need help with?"):
     with st.chat_message("assistant"):
         response = st.write_stream(stream)
     st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.messages = keep_last_n_user_messages(st.session_state.messages, n=5)
