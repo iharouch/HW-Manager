@@ -4,3 +4,6 @@ PyMuPDF
 bs4
 requests
 anthropic
+chromadb
+sentence-transformers
+faiss-cpu

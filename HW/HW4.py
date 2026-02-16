@@ -4,6 +4,11 @@ import sys
 import chromadb
 from pathlib import Path
 import fitz
+import glob, os, json
+from bs4 import BeautifulSoup
+from sentence_transformers import SentenceTransformer
+import faiss
+import numpy as np
 
 # A fix for working with ChromaDB on Streamlit
 __import__('pysqlite3')
