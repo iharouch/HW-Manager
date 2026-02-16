@@ -3,21 +3,17 @@ from openai import OpenAI
 import sys
 import chromadb
 from pathlib import Path
-import fitz
-import glob, os, json
 from bs4 import BeautifulSoup
-from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
 
 # A fix for working with ChromaDB on Streamlit
 __import__('pysqlite3')
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 #Create ChromaDB client and collection
-if 'Lab4_VectorDB' not in st.session_state:
-    chroma_client = chromadb.PersistentClient(path="./ChromaDB_for_Lab")
-    st.session_state.HW4_VectorDB = chroma_client.get_or_create_collection(name="HW4Collection")
+if 'chroma_client' not in st.session_state:
+    st.session_state.chroma_client = chromadb.PersistentClient(path="./ChromaDB_for_Lab")
+if 'HW4_VectorDB' not in st.session_state:
+    st.session_state.HW4_VectorDB = st.session_state.chroma_client.get_or_create_collection(name="HW4Collection")
 
 collection = st.session_state.HW4_VectorDB 
 
@@ -29,57 +25,58 @@ if 'client' not in st.session_state:
     api_key = st.secrets["OPENAI_API_KEY"]
     st.session_state.client = OpenAI(api_key=api_key)
 
-#A function that will add documents to collection
-def add_to_collection(collection, text, file_name):
-    """
-    Collection = collection, already defined
-    text = extarcted text from PDF
-    file_name = name of the PDF file
-    Embeddings inserted into the collection from OpenAI
-    """
-    #Create an embedding
-    client = st.session_state.client
-    response = client.embeddings.create(
-        input = text,
-        model = "text-embedding-3-small"
-    )
+### Extract text from HTML and populate collection ###
+def extract_text_from_html(file_path):
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+        html = f.read()
+    soup = BeautifulSoup(html, "html.parser")
+    for s in soup(["script", "style"]):
+        s.extract()
+    return soup.get_text(" ", strip=True)
 
-    #Get the embedding vector
-    embedding = response.data[0].embedding
+def chunk_text(text, size=800, overlap=150):
+    words = text.split()
+    step = size - overlap
+    return [
+        " ".join(words[i:i+size])
+        for i in range(0, len(words), step)
+    ]
 
-    #Add embedding and document to ChromaDB
-    collection.add(
-        documents = [text],
-        ids = file_name,
-        embeddings = [embedding]
-    )
+def load_htmls_to_collection(folder_path, collection):
+    for file in Path(folder_path).glob("*.html"):
+        text = extract_text_from_html(file)
+        chunks = chunk_text(text)
 
-### Extract text from PDF ###
-def extract_text_from_pdf(file_path):
-    """
-    file_path = path to PDF file
-    returns extracted text from PDF
-    """
-    doc = fitz.open(file_path)
-    text = ""
-    for page in doc:
-        text += page.get_text()
-    return text
+        docs = []
+        ids = []
 
-### Populate collection with PDFs ###
-def load_pdfs_to_collection(folder_path, collection):
-    """
-    folder_path = path to folder containing PDFs
-    collection = ChromaDB collection
-    """
-    pdf_files = Path(folder_path).glob("*.pdf")
-    for pdf_file in pdf_files:
-        text = extract_text_from_pdf(pdf_file)
-        add_to_collection(collection, text, pdf_file.stem)
+        for i, chunk in enumerate(chunks, start=1):
+            if chunk.strip():
+                docs.append(chunk)
+                file_name = f"{file.stem}_chunk{i}" # Unique ID for each chunk
+                ids.append(file_name)
 
-#Check if collection is empty and load PDFs
+        if not docs:
+            continue
+
+        # batch embedding
+        response = st.session_state.client.embeddings.create(
+            model="text-embedding-3-small",
+            input=docs
+        )
+
+        embeddings = [d.embedding for d in response.data]
+
+        # add to collection
+        collection.add(
+            documents=docs,
+            embeddings=embeddings,
+            ids=ids
+        )
+
+# Check if collection is empty and load HTML files
 if st.session_state.HW4_VectorDB.count() == 0:
-    loaded = load_pdfs_to_collection("./HW/Lab-04-Data/", st.session_state.HW4_VectorDB)
+    load_htmls_to_collection("./HW/HW-4-Data/", st.session_state.HW4_VectorDB)
 
 # System prompt to guide bot behavior
 SYSTEM_PROMPT = """You are a helpful Q&A chatbot. Follow these rules STRICTLY:
@@ -121,16 +118,12 @@ if prompt := st.chat_input("What do you need help with?"):
         n_results=3 #The number of closest documents to return
     )
 
-    for i in range(len(results['documents'][0])):
-        doc = results['documents'][0][i]
-        doc_id = results['ids'][0][i]
-
     #Build RAG context
     rag_context = "\n\n".join(
-    f"Source: {doc_id}\n{doc}" # Include source in context to know which PDF it is
+    f"Source: {doc_id}\n{doc}" # Include source in context to know which document it is
     for doc, doc_id in zip(results["documents"][0], results["ids"][0])) #Zip to get both the document and its ID
-    rag_prompt = f"""Use the following context from the PDFs to answer the question if it helps. If you use it, clearly say so in the answer.
-    PDF Information: {rag_context}, user question: {prompt}"""
+    rag_prompt = f"""Use the following context from the documents to answer the question if it helps. If you use it, clearly say so in the answer.
+    Document Information: {rag_context}, user question: {prompt}"""
 
     stream = client.chat.completions.create(
         model=openAI_model,
