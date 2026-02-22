@@ -111,7 +111,7 @@ SYSTEM_PROMPT = """You are a helpful Q&A chatbot. Follow these rules STRICTLY:
 3. ALWAYS end your answer with: "Do you want more info?"
 4. If the user says "Yes" or "yes", provide additional detailed information and ALWAYS end with: "Do you want more info?"
 5. If the user says "No" or "no", respond with: "How can I help you with something else?"
-6. If you use the rag context, make sure to indicate that you did so.
+6. If you use the rag context, make sure you say you used the syllabus but do not print it.
 Keep responses focused, helpful, and easy to understand."""
 
 ### Main App ###
@@ -128,7 +128,7 @@ if 'messages' not in st.session_state:
 for msg in st.session_state.messages[1:]:
     chat_msg = st.chat_message(msg["role"])
     chat_msg.write(msg["content"])
-    
+
 # Get user input
 if prompt := st.chat_input("What do you need help with?"):
     st.session_state.messages.append({"role": "user", "content": prompt}) #Store message in memory
