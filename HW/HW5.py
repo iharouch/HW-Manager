@@ -111,6 +111,7 @@ SYSTEM_PROMPT = """You are a helpful Q&A chatbot. Follow these rules STRICTLY:
 3. ALWAYS end your answer with: "Do you want more info?"
 4. If the user says "Yes" or "yes", provide additional detailed information and ALWAYS end with: "Do you want more info?"
 5. If the user says "No" or "no", respond with: "How can I help you with something else?"
+6. If you use the rag context, make sure to indicate that you did so.
 Keep responses focused, helpful, and easy to understand."""
 
 ### Main App ###
