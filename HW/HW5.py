@@ -132,7 +132,7 @@ for msg in st.session_state.messages[1:]:
 if prompt := st.chat_input("What do you need help with?"):
     rag_context = relevant_course_info(prompt)
 
-    updated_prompt = f"Use the following PDF information only if it is helpful: {rag_context} to answer this prompt {prompt}"
+    updated_prompt = f"Use the following PDF information only if it is helpful, do not repeat it word for word: {rag_context} to answer this prompt {prompt}"
 
     st.session_state.messages.append({"role": "user", "content": updated_prompt}) #Store message in memory
 
