@@ -130,19 +130,21 @@ for msg in st.session_state.messages[1:]:
 
 # Get user input
 if prompt := st.chat_input("What do you need help with?"):
-    rag_context = relevant_course_info(prompt)
-
-    updated_prompt = f"Use the following PDF information only if it is helpful, do not repeat it word for word: {rag_context} to answer this prompt {prompt}"
-
-    st.session_state.messages.append({"role": "user", "content": updated_prompt}) #Store message in memory
+    st.session_state.messages.append({"role": "user", "content": prompt}) #Store message in memory
 
     with st.chat_message("user"):
         st.markdown(prompt) # Print original user question
 
+    rag_context = relevant_course_info(prompt)
+
     # Call OpenAI API
+    final_message = [
+        {"role": "system", "content": SYSTEM_PROMPT + f"\n\nUse the following PDF information if it is useful: {rag_context}"},
+    ] + st.session_state.messages[1:] # Add all previous messages except system prompt
+
     stream = st.session_state.client.chat.completions.create(
         model=openAI_model,
-        messages=st.session_state.messages,
+        messages=final_message,
         stream=True
     )
 
