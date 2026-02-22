@@ -114,7 +114,7 @@ SYSTEM_PROMPT = """You are a helpful Q&A chatbot. Follow these rules STRICTLY:
 Keep responses focused, helpful, and easy to understand."""
 
 ### Main App ###
-st.title("Lab 4: Chatbot using RAG")
+st.title("HW 5: Short-term Memory Chatbot")
 
 # Initialize messages with system prompt (protected from removal)
 if 'messages' not in st.session_state:
@@ -125,43 +125,26 @@ if 'messages' not in st.session_state:
 
 # Get user input
 if prompt := st.chat_input("What do you need help with?"):
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.messages.append({"role": "user", "content": prompt}) #Store message in memory
+
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    client = st.session_state.client
-    response = client.embeddings.create(
-        input = prompt,
-        model = "text-embedding-3-small"
-    )
+    #Call relevant_course_info function
+    rag_context = relevant_course_info(prompt)
+    
+    # Add rag context to message prompt
+    st.session_state.messages.append({
+        "role": "system",
+        "content": f"Relevant PDF information: {rag_context}"})
 
-    #Get the embedding vector
-    query_embedding = response.data[0].embedding
-
-    #Get the text related to this question (this prompt)
-    results = collection.query(
-        query_embeddings = [query_embedding],
-        n_results=3 #The number of closest documents to return
-    )
-
-    for i in range(len(results['documents'][0])):
-        doc = results['documents'][0][i]
-        doc_id = results['ids'][0][i]
-
-    #Build RAG context
-    rag_context = "\n\n".join(
-    f"Source: {doc_id}\n{doc}" # Include source in context to know which PDF it is
-    for doc, doc_id in zip(results["documents"][0], results["ids"][0])) #Zip to get both the document and its ID
-    rag_prompt = f"""Use the following context from the PDFs to answer the question if it helps. If you use it, clearly say so in the answer.
-    PDF Information: {rag_context}, user question: {prompt}"""
-
-    stream = client.chat.completions.create(
+    # Call OpenAI API
+    stream = st.session_state.client.chat.completions.create(
         model=openAI_model,
-        messages=[{"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": rag_prompt}],
+        messages=st.session_state.messages,
         stream=True
     )
 
     with st.chat_message("assistant"):
         response = st.write_stream(stream)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.messages.append({"role": "assistant", "content": response}) #Save response to memory
