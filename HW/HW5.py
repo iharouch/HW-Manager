@@ -141,7 +141,7 @@ if prompt := st.chat_input("What do you need help with?"):
     # Add rag context to message prompt
     st.session_state.messages.append({
         "role": "system",
-        "content": f"Relevant PDF information: {rag_context}"})
+        "content": f"Use the following PDF information only if it is helpful: {rag_context}"})
 
     # Call OpenAI API
     stream = st.session_state.client.chat.completions.create(
