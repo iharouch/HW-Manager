@@ -124,6 +124,11 @@ if 'messages' not in st.session_state:
         {"role": "assistant", "content": "How can I help you?"}
     ]
 
+# Display chat history (skip system prompt)
+for msg in st.session_state.messages[1:]:
+    chat_msg = st.chat_message(msg["role"])
+    chat_msg.write(msg["content"])
+    
 # Get user input
 if prompt := st.chat_input("What do you need help with?"):
     st.session_state.messages.append({"role": "user", "content": prompt}) #Store message in memory
