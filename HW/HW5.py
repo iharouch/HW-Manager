@@ -130,18 +130,14 @@ for msg in st.session_state.messages[1:]:
 
 # Get user input
 if prompt := st.chat_input("What do you need help with?"):
-    st.session_state.messages.append({"role": "user", "content": prompt}) #Store message in memory
+    rag_context = relevant_course_info(prompt)
+
+    updated_prompt = f"Use the following PDF information only if it is helpful: {rag_context} to answer this prompt {prompt}"
+
+    st.session_state.messages.append({"role": "user", "content": updated_prompt}) #Store message in memory
 
     with st.chat_message("user"):
-        st.markdown(prompt)
-
-    #Call relevant_course_info function
-    rag_context = relevant_course_info(prompt)
-    
-    # Add rag context to message prompt
-    st.session_state.messages.append({
-        "role": "system",
-        "content": f"Use the following PDF information only if it is helpful: {rag_context}"})
+        st.markdown(prompt) # Print original user question
 
     # Call OpenAI API
     stream = st.session_state.client.chat.completions.create(
