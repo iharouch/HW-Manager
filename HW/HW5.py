@@ -102,7 +102,7 @@ def relevant_course_info(query):
 
 #Check if collection is empty and load PDFs
 if st.session_state.HW5_VectorDB.count() == 0:
-    loaded = load_pdfs_to_collection("./HW/HW-05-Data/", st.session_state.HW5_VectorDB)
+    loaded = load_pdfs_to_collection("./HW/HW-5-Data/", st.session_state.HW5_VectorDB)
 
 # System prompt to guide bot behavior
 SYSTEM_PROMPT = """You are a helpful Q&A chatbot. Follow these rules STRICTLY:
