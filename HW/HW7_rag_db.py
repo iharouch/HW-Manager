@@ -3,16 +3,23 @@ from openai import OpenAI
 import sys
 import chromadb
 import streamlit as st
+from pathlib import Path
 
 # Initialize OpenAI client
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # Initialize ChromaDB client and collection
-chroma_client = chromadb.PersistentClient(path="./ChromaDB_News")
+BASE_DIR = Path(__file__).parent
+db_path = BASE_DIR / "ChromaDB_News"
+db_path.mkdir(exist_ok=True)
+
+chroma_client = chromadb.PersistentClient(path=db_path)
 collection = chroma_client.get_or_create_collection(name="HW7_NewsCollection")
 
 # Load CSV
-df = pd.read_csv("./HW-7-Data/news.csv")
+csv_path = BASE_DIR / "HW-7-Data" / "news.csv"
+
+df = pd.read_csv(csv_path)
 
 # Function to add articles
 def add_article_to_collection(collection, text, metadata, article_id):
@@ -30,12 +37,14 @@ def add_article_to_collection(collection, text, metadata, article_id):
 
 # Add data in database
 for idx, row in df.iterrows():
-    text = row['content']
+    text = row['Document']
     metadata = {
-        "title": row.get('title', ''),
-        "date": row.get('date', ''),
-        "topic": row.get('topic', '')
+        "company_name": row.get('company_name', ''),
+        "date": row.get('Date', ''),
+        "url": row.get('URL', '')
     }
     add_article_to_collection(collection, text, metadata, str(idx))
+
+    print(f"Processed article {idx+1}/{len(df)}")
 
 print("RAG DB completed successfully")
