@@ -27,7 +27,10 @@ collection = chroma_client.get_or_create_collection(name="HW7_NewsCollection")
 csv_path = BASE_DIR / "HW-7-Data" / "news.csv"
 
 # Build RAG DB only if empty
-if len(collection.get()["ids"]) == 0:
+if "db_built" not in st.session_state:
+    st.session_state.db_built = False
+
+if not st.session_state.db_built:
     df = pd.read_csv(csv_path)
     for idx, row in df.iterrows():
         text = str(row.get('Document', '')).replace('\n', ' ')[:5000]
@@ -41,8 +44,15 @@ if len(collection.get()["ids"]) == 0:
             model="text-embedding-3-small"
         )
         embedding = response.data[0].embedding
-        collection.add(documents=[text], ids=[str(idx)], embeddings=[embedding], metadatas=[metadata])
+        collection.add(
+            documents=[text],
+            ids=[str(idx)],
+            embeddings=[embedding],
+            metadatas=[metadata]
+        )
         print(f"Processed article {idx+1}/{len(df)}")
+
+    st.session_state.db_built = True
 
 # System prompt
 SYSTEM_PROMPT = """You are a helpful news chatbot. 
