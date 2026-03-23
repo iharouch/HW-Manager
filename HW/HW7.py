@@ -1,153 +1,105 @@
 import streamlit as st
 from openai import OpenAI
-import sys
 import chromadb
 from pathlib import Path
-import fitz
+import sys
 
 # A fix for working with ChromaDB on Streamlit
 __import__('pysqlite3')
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
-#Create ChromaDB client and collection
-if 'HW5_VectorDB' not in st.session_state:
-    chroma_client = chromadb.PersistentClient(path="./ChromaDB_for_Lab")
-    st.session_state.HW5_VectorDB = chroma_client.get_or_create_collection(name="HW5Collection")
-
-collection = st.session_state.HW5_VectorDB
-
-### Using Chroma DB with OpenAI Embeddings ###
 #Create an OpenAI client
-openAI_model = "gpt-5-mini"
-
 if 'client' not in st.session_state:
     api_key = st.secrets["OPENAI_API_KEY"]
     st.session_state.client = OpenAI(api_key=api_key)
 
-#A function that will add documents to collection
-def add_to_collection(collection, text, file_name):
-    """
-    Collection = collection, already defined
-    text = extarcted text from PDF
-    file_name = name of the PDF file
-    Embeddings inserted into the collection from OpenAI
-    """
-    #Create an embedding
+# System prompt
+SYSTEM_PROMPT = """You are a helpful news chatbot. 
+You answer questions about the given news articles. 
+Use clear and concise language and provide context from the articles. 
+Always end with 'Do you want more info?'"""
+
+#Initialize messages in session state
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "assistant", "content": "Hi! I can help you find news about companies or interesting topics."}
+        ]
+
+# Load ChromaDB collection
+BASE_DIR = Path(__file__).parent
+db_path = BASE_DIR / "ChromaDB_News"
+chroma_client = chromadb.PersistentClient(path=db_path)
+collection = chroma_client.get_or_create_collection(name="HW7_NewsCollection")
+
+# Function to get relevant articles from ChromaDB
+def get_rag_context(query, collection, top_k=3):
+    # Embed the query
     client = st.session_state.client
     response = client.embeddings.create(
-        input = text,
-        model = "text-embedding-3-small"
+        input=query,
+        model="text-embedding-3-small"
     )
 
-    #Get the embedding vector
-    embedding = response.data[0].embedding
-
-    #Add embedding and document to ChromaDB
-    collection.add(
-        documents = [text],
-        ids = file_name,
-        embeddings = [embedding]
-    )
-
-### Extract text from PDF ###
-def extract_text_from_pdf(file_path):
-    """
-    file_path = path to PDF file
-    returns extracted text from PDF
-    """
-    doc = fitz.open(file_path)
-    text = ""
-    for page in doc:
-        text += page.get_text()
-    return text
-
-### Populate collection with PDFs ###
-def load_pdfs_to_collection(folder_path, collection):
-    """
-    folder_path = path to folder containing PDFs
-    collection = ChromaDB collection
-    """
-    pdf_files = Path(folder_path).glob("*.pdf")
-    for pdf_file in pdf_files:
-        text = extract_text_from_pdf(pdf_file)
-        add_to_collection(collection, text, pdf_file.stem)
-
-# Function that takes a query input from the LLM and returns relevant information from ChromaDB collection
-def relevant_course_info(query):
-    """
-    Takes a query and returns relevant documents from collection
-    """
-    client = st.session_state.client
-
-    #Create embedding for query
-    response = client.embeddings.create(
-        input = query,
-        model = "text-embedding-3-small"
-    )
-
+    # Query collection
     query_embedding = response.data[0].embedding
-
-    #Get the text related to this question (this prompt)
     results = collection.query(
-        query_embeddings = [query_embedding],
-        n_results=3 #The number of closest documents to return
+        query_embeddings=[query_embedding],
+        n_results=top_k
     )
 
-    # Build RAG context
+     # Build RAG context
     rag_context = "\n\n".join(
-        f"Source: {doc_id}\n{doc}" # Include source in context to know which PDF it is
-        for doc, doc_id in zip(results["documents"][0], results["ids"][0])) #Zip to get both the document and its ID
-
+        f"Source: {doc_id}\n{doc}" 
+        for doc, doc_id in zip(results["documents"][0], results["ids"][0])
+    )
     return rag_context
 
-#Check if collection is empty and load PDFs
-if st.session_state.HW5_VectorDB.count() == 0:
-    loaded = load_pdfs_to_collection("./HW/HW-5-Data/", st.session_state.HW5_VectorDB)
+#Functions to answer interesting news questions
+def find_most_interesting_news(collection, top_k=5):
+    query = "Find the most interesting news"
+    return get_rag_context(query, collection, top_k=top_k)
 
-# System prompt to guide bot behavior
-SYSTEM_PROMPT = """You are a helpful Q&A chatbot. Follow these rules STRICTLY:
-1. When answering a NEW QUESTION, provide a clear, concise answer that a 10-year-old can understand
-2. Use simple words and avoid technical terms. Explain complex ideas with everyday examples.
-3. ALWAYS end your answer with: "Do you want more info?"
-4. If the user says "Yes" or "yes", provide additional detailed information and ALWAYS end with: "Do you want more info?"
-5. If the user says "No" or "no", respond with: "How can I help you with something else?"
-Keep responses focused, helpful, and easy to understand."""
+def find_news_about(query, collection, top_k=5):
+    # Search articles mentioning the topic/company
+    return get_rag_context(query, collection, top_k=top_k)
 
-### Main App ###
-st.title("HW 5: Short-term Memory Chatbot")
+# Chatbot interface
+st.title("News Chatbot")
 
-# Initialize messages with system prompt (protected from removal)
-if 'messages' not in st.session_state:
-    st.session_state['messages'] = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "assistant", "content": "How can I help you?"}
-    ]
-
-# Display chat history (skip system prompt)
+# Display chat history
 for msg in st.session_state.messages[1:]:
-    chat_msg = st.chat_message(msg["role"])
-    chat_msg.write(msg["content"])
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
 
 # Get user input
-if prompt := st.chat_input("What do you need help with?"):
-    st.session_state.messages.append({"role": "user", "content": prompt}) #Store message in memory
-
+if prompt := st.chat_input("What do you want to know? Want me to find the most interesting news or find news about a certain topic?"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
-        st.markdown(prompt) # Print original user question
+        st.write(prompt)
 
-    rag_context = relevant_course_info(prompt)
+    # Get relevant rag context
+    if prompt.lower() == "find the most interesting news":
+        rag_context = find_most_interesting_news(collection)
+    elif prompt.lower().startswith("find news about"):
+        topic = prompt[len("find news about "):].strip()
+        rag_context = find_news_about(topic, collection)
+    else:
+        rag_context = get_rag_context(prompt, collection)
 
-    # Call OpenAI API
-    final_message = [
-        {"role": "system", "content": SYSTEM_PROMPT + f"\n\nUse the following PDF information if it is useful: {rag_context}"},
-    ] + st.session_state.messages[1:] # Add all previous messages except system prompt
+    # Update message for model
+    chat_messages = [
+        {"role": "system", "content": SYSTEM_PROMPT + f"Use the following articles to answer the questions: \n{rag_context}"}
+    ] + st.session_state.messages[1:]
 
-    stream = st.session_state.client.chat.completions.create(
-        model=openAI_model,
-        messages=final_message,
+    # Call OpenAI chat API
+    response_stream = st.session_state.client.chat.completions.create(
+        model="gpt-5-mini",
+        messages=chat_messages,
         stream=True
     )
 
+    # Display response as they're written
     with st.chat_message("assistant"):
-        response = st.write_stream(stream)
-    st.session_state.messages.append({"role": "assistant", "content": response}) #Save response to memory
+        response = st.write_stream(response_stream)
+    st.session_state.messages.append({"role": "assistant", "content": response})
