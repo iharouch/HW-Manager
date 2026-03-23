@@ -98,7 +98,7 @@ if prompt := st.chat_input("What do you want to know? Want me to find the most i
     ] + st.session_state.messages[1:]
 
     response_stream = st.session_state.client.chat.completions.create(
-        model="gpt-5-mini",
+        model="gpt-5.4-nano",
         messages=chat_messages,
         stream=True
     )
