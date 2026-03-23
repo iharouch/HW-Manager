@@ -31,7 +31,7 @@ csv_path = BASE_DIR / "HW-7-Data" / "news.csv"
 if len(collection.get()["ids"]) == 0:
     df = pd.read_csv(csv_path)
     for idx, row in df.iterrows():
-        text = f"Company: {row.get('company_name','')}\n{row.get('Document','')}"
+        text = str(row.get('Document', '')).replace('\n', ' ')[:5000]
         metadata = {
             "company_name": row.get('company_name', ''),
             "date": row.get('Date', ''),
