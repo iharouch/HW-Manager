@@ -48,6 +48,8 @@ if len(collection.get()["ids"]) == 0:
 SYSTEM_PROMPT = """You are a helpful news chatbot. 
 You answer questions about the given news articles. 
 Use clear and concise language and provide context from the articles. 
+If the user asks "Find the most interesting news", return a ranked-order list of articles and context.
+If the user asks "Find news about X", return news on specific topic/company.
 Always end with 'Do you want more info?'"""
 
 #Initialize messages in session state
