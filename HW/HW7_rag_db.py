@@ -4,10 +4,6 @@ import sys
 import chromadb
 import streamlit as st
 
-# A fix for working with ChromaDB on Streamlit
-__import__('pysqlite3')
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-
 # Initialize OpenAI client
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
