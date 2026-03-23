@@ -22,7 +22,6 @@ csv_path = BASE_DIR / "HW-7-Data" / "news.csv"
 # Load ChromaDB collection
 chroma_client = chromadb.PersistentClient(path=db_path)
 collection = chroma_client.get_or_create_collection(name="HW7_NewsCollection")
-st.write("Total articles:", len(collection.get()["ids"]))
 
 # Load CSV
 csv_path = BASE_DIR / "HW-7-Data" / "news.csv"
